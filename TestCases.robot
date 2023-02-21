@@ -35,5 +35,5 @@ Open URL Locally
     Maximize Browser Window
 
 Open URL AutoHero
-    Go To    https://www.autohero.com/
+    Go To    https://www.google.com/
 
