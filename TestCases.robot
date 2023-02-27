@@ -1,39 +1,20 @@
 *** Settings ***
-Documentation   Auto1/QA Task
-Library         SeleniumLibrary
-Library         String
-Library         helpers.HelpLib
-Library         Collections    
-Suite Setup     Open URL Locally
-Suite Teardown  Close Browser
-
+Library    Collections
+Library    RequestsLibrary
+Library    String
+Library    b64encode
 
 *** Test Cases ***
-TC1 - Check Filters on Advanced Searh Page
-    Given Open URL AutoHero
-   
-
-
-*** Keywords ***
-Open Tests in Souce Labs
-    ${desired_capabilities}=    Create Dictionary
-    Set to Dictionary    ${desired_capabilities}    build    test_run
-    Set to Dictionary    ${desired_capabilities}    platformName    Windows 10
-    Set to Dictionary    ${desired_capabilities}    name    Auto1
-    Set to Dictionary    ${desired_capabilities}    browserName    chrome
-
-    ${executor}=    Evaluate          str('http://milan.novovic:0f772a45-b623-4d44-a01f-9a1db40f0d5d@ondemand.saucelabs.com:80/wd/hub')
-    Create Webdriver    Remote      desired_capabilities=${desired_capabilities}    command_executor=${executor}   
-
-
-Open URL Locally
-    #Open Webdriver hosted on Azure Devops
-    Create Webdriver    Chrome    executable_path=D:/a/1/s/node_modules/chromedriver/lib/chromedriver/chromedriver.exe
-    
-    # Open Browser on Local Machine
-    # Open Browser    https://www.autohero.com/de/search/    chrome
-    Maximize Browser Window
-
-Open URL AutoHero
-    Go To    https://www.google.com/
-
+Retrive Entitlement
+    Create Session    TokenSession    https://api-qa.eaton.com/oauth   disable_warnings=True
+    ${basicToken}=  Evaluate    base64.b64encode("uA123DuFzns3Wrx61zU2O1xCVvlRWQAX:6pMZMWkirANnsHFy".encode('utf-8')).decode("ascii")
+    ${headersToken}    Create Dictionary    Authorization=Basic ${basicToken}
+    ${authres}  POST On Session     TokenSession    url=/accesstoken?grant_type=client_credentials  headers=${headersToken}
+    ${responsepayload}=    Set Variable    ${authres.json()}
+    ${token}=      Set Variable    ${responsepayload['access_token']}
+    Create Session  EntitlementSession  https://api-qa.eaton.com/entitlement-management/v1  disable_warnings=True
+    ${headers}    Create Dictionary    Authorization=Bearer ${token}    Content-Type=application/json    Accept=application/json
+    ${entitlmentRes}    GET On Session    EntitlementSession    url=/entitlements?actIdSearchType=EQUALS&accountId=US_STEEL_GARY    headers=${headers}
+    Log    ${entitlmentRes.text}    console=True
+    Should Be Equal As Strings    ${entitlmentRes.status_code}  200
+    Should contain       ${entitlmentRes.text}  SUCCESS
